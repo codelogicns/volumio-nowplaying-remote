@@ -1,5 +1,5 @@
 # Step 1: Use GraalVM to build the native image
-FROM ghcr.io/graalvm/native-image-community:25-muslib AS build
+FROM --platform=$BUILDPLATFORM ghcr.io/graalvm/native-image-community:25-muslib AS build
 
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8

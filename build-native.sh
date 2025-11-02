@@ -2,7 +2,7 @@
 set -e
 
 # Build Docker image
-docker build -f Dockerfile.native -t my-native-build .
+docker build --platform=linux/amd64 -f Dockerfile.native -t my-native-build .
 
 # Extract native executable to target/
 mkdir -p build
