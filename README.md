@@ -135,15 +135,12 @@ When the tool connects, it sends a WebSocket message to Volumio:
   }
 }
 ```
-**Lyrics View:**
+**Refresh Settings:**
 ```json
 {
   "endpoint": "user_interface/now_playing",
-  "method": "configSaveStartupOptions",
-  "data": {
-    "activeScreen": "nowPlaying.infoView.lyrics",
-    "activateIdleScreen": false
-  }
+  "method": "broadcastRefresh",
+  "data": { }
 }
 ```
 
