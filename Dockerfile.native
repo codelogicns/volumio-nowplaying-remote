@@ -1,22 +1,40 @@
-# Step 1: Use GraalVM to build the native image
-FROM --platform=$BUILDPLATFORM ghcr.io/graalvm/native-image-community:25-muslib AS build
+# syntax=docker/dockerfile:1.4
+
+###########################################
+# 1️⃣ Build Java app with Maven
+###########################################
+FROM --platform=$BUILDPLATFORM maven:3.9.9-eclipse-temurin-21 AS build-java
+
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -B dependency:go-offline
+COPY src ./src
+RUN mvn -B clean package -DskipTests
+
+###########################################
+# 2️⃣ Build native image using GraalVM
+###########################################
+FROM --platform=$BUILDPLATFORM ghcr.io/graalvm/native-image-community:25 AS build-native
+
+WORKDIR /app
+COPY --from=build-java /app/target/*.jar app.jar
 
 ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
-# Set working directory
-WORKDIR /workspace
+# Detect actual architecture inside the container
+RUN ARCH=$(uname -m) && \
+    case "$ARCH" in \
+      x86_64) ARCH="amd64" ;; \
+      aarch64) ARCH="arm64" ;; \
+      *) ARCH="unknown" ;; \
+    esac && \
+    echo "🏗 Building native image for architecture: $ARCH" && \
+    native-image --no-server --no-fallback -jar app.jar volumio-nowplaying-remote-$ARCH && \
+    mkdir -p /export && cp /app/volumio-nowplaying-remote-$ARCH /export/
 
-# Copy Maven wrapper scripts first (so Docker can cache dependencies)
-COPY mvnw .
-COPY .mvn/ .mvn/
-
-# Copy Maven wrapper and project files
-COPY . .
-
-# Snatart downloading dependencies
-RUN ./mvnw verify clean --fail-never
-
-# Build the project using Maven native profile
-RUN ./mvnw -Pnative -DskipTests package
+###########################################
+# 3️⃣ Export stage
+###########################################
+FROM scratch AS export
+COPY --from=build-native /export /export
